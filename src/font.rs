@@ -11,7 +11,7 @@ use swash::{Attributes, CacheKey, FontRef, Synthesis};
 const RETAINED_SOURCE_COUNT: usize = 12;
 
 /// Shared handle to a font.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Font {
     data: FontData,
     offset: u32,
@@ -51,6 +51,39 @@ impl FontContext {
     /// Returns true if a family of the specified name exists in the context.
     pub fn has_family(&self, name: &str) -> bool {
         self.cache.context.family_by_name(name).is_some()
+    }
+
+    pub fn fonts(&mut self, family: crate::style::FontFamily<'_>) -> Vec<(Font, Attributes)> {
+        let context = &self.cache.context;
+        let font_with_attrs = |font_id: fount::FontId| {
+            let font_entry = context.font(font_id)?;
+            let font_data = context.load(font_entry.source())?;
+            let font_ref = FontRef::from_index(&font_data, font_entry.index() as _)?;
+            let offset = font_ref.offset;
+            let font = Font {
+                data: font_data,
+                offset,
+                key: font_entry.cache_key(),
+            };
+            Some((font, font_entry.attributes()))
+        };
+        match family {
+            crate::style::FontFamily::Named(family_name) => context
+                .family_by_name(family_name)
+                .into_iter()
+                .map(|family_entry| family_entry.fonts().collect::<Vec<_>>())
+                .flatten()
+                .flat_map(font_with_attrs)
+                .collect::<Vec<_>>(),
+            crate::style::FontFamily::Generic(generic_family) => context
+                .generic_families(generic_family)
+                .iter()
+                .flat_map(|family_id| context.family(*family_id))
+                .map(|family_entry| family_entry.fonts().collect::<Vec<_>>())
+                .flatten()
+                .flat_map(font_with_attrs)
+                .collect::<Vec<_>>(),
+        }
     }
 
     /// Registers the fonts in the specified font data. Returns the family name
