@@ -1,13 +1,15 @@
+use swash::shape::{partition, Direction, ShapeContext};
+use swash::text::cluster::{CharCluster, CharInfo, Token};
+use swash::text::{Language, Script};
+use swash::{Attributes, FontRef, Synthesis};
+
+use crate::util::nearly_eq;
+
 use super::font::{Font, FontContext};
 use super::layout::Layout;
 use super::resolve::range::RangedStyle;
 use super::resolve::{ResolveContext, Resolved};
 use super::style::{Brush, FontFeature, FontVariation};
-use crate::util::nearly_eq;
-use swash::shape::*;
-use swash::text::cluster::{CharCluster, CharInfo, Token};
-use swash::text::{Language, Script};
-use swash::{Attributes, FontRef, Synthesis};
 
 struct Item {
     style_index: u16,
@@ -57,14 +59,7 @@ pub fn shape_text<B: Brush>(
             let item_text = &text[text_range.clone()];
             let item_infos = &infos[char_range.start..];
             let first_style_index = item_infos[0].1;
-            let mut fs = FontSelector::new(
-                fcx,
-                rcx,
-                styles,
-                first_style_index,
-                item.script,
-                item.locale,
-            );
+            let mut fs = FontSelector::new(fcx, rcx, styles, first_style_index);
             let options = partition::SimpleShapeOptions {
                 size: item.size,
                 script: item.script,
@@ -153,8 +148,6 @@ struct FontSelector<'a, B: Brush> {
     rcx: &'a ResolveContext,
     styles: &'a [RangedStyle<B>],
     style_index: u16,
-    script: Script,
-    locale: Option<Language>,
     attrs: Attributes,
     variations: &'a [FontVariation],
     features: &'a [FontFeature],
@@ -166,8 +159,6 @@ impl<'a, B: Brush> FontSelector<'a, B> {
         rcx: &'a ResolveContext,
         styles: &'a [RangedStyle<B>],
         style_index: u16,
-        script: Script,
-        locale: Option<Language>,
     ) -> Self {
         let style = &styles[style_index as usize].style;
         let fonts_id = style.font_stack.id();
@@ -176,14 +167,11 @@ impl<'a, B: Brush> FontSelector<'a, B> {
         let variations = rcx.variations(style.font_variations).unwrap_or(&[]);
         let features = rcx.features(style.font_features).unwrap_or(&[]);
         fcx.cache.select_families(fonts_id, fonts, attrs);
-        fcx.cache.select_fallbacks(script, locale, attrs);
         Self {
             fcx,
             rcx,
             styles,
             style_index,
-            script,
-            locale,
             attrs,
             variations,
             features,
@@ -205,11 +193,6 @@ impl<'a, B: Brush> partition::Selector for FontSelector<'a, B> {
             let variations = self.rcx.variations(style.font_variations).unwrap_or(&[]);
             let features = self.rcx.features(style.font_features).unwrap_or(&[]);
             self.fcx.cache.select_families(fonts_id, fonts, attrs);
-            if self.attrs != attrs {
-                self.fcx
-                    .cache
-                    .select_fallbacks(self.script, self.locale, attrs);
-            }
             self.attrs = attrs;
             self.variations = variations;
             self.features = features;

@@ -1,5 +1,10 @@
 //! Layout types.
 
+use swash::GlyphId;
+
+use super::font::Font;
+use super::style::Brush;
+
 mod cluster;
 mod line;
 mod run;
@@ -8,17 +13,12 @@ pub(crate) mod data;
 
 pub mod cursor;
 
-use super::font::Font;
-use super::style::Brush;
-use core::ops::Range;
-use data::*;
-use swash::text::cluster::{Boundary, ClusterInfo};
-use swash::{GlyphId, NormalizedCoord, Synthesis};
+use self::data::{ClusterData, LayoutData, LineData, LineRunData, RunData};
 
-pub use cursor::Cursor;
-pub use line::greedy::BreakLines;
-pub use line::{GlyphRun, LineMetrics};
-pub use run::RunMetrics;
+pub use self::cursor::Cursor;
+pub use self::line::greedy::BreakLines;
+pub use self::line::{GlyphRun, LineMetrics};
+pub use self::run::RunMetrics;
 
 /// Alignment of a layout.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

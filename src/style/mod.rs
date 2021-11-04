@@ -3,10 +3,10 @@
 mod brush;
 mod font;
 
-pub use brush::*;
+pub use brush::Brush;
 pub use font::{
     FontFamily, FontFeature, FontSettings, FontStack, FontStretch, FontStyle, FontVariation,
-    FontWeight, GenericFamily, ObliqueAngle,
+    FontWeight, ObliqueAngle,
 };
 
 /// Properties that define a style.

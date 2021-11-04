@@ -1,6 +1,6 @@
 //! Unicode bidirectional algorithm.
 
-use swash::text::{BidiClass, BracketType, Codepoint as _};
+use swash::text::{BidiClass, BracketType, Codepoint};
 use BidiClass::*;
 
 /// Type alias for a bidirectional level.

@@ -1,6 +1,5 @@
-use core::fmt;
+use std::fmt;
 
-pub use fount::GenericFamily;
 pub use swash::{ObliqueAngle, Stretch as FontStretch, Style as FontStyle, Weight as FontWeight};
 
 /// Setting for a font variation.
@@ -26,11 +25,8 @@ pub enum FontStack<'a> {
 ///
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/font-family>
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum FontFamily<'a> {
-    /// Named font family.
-    Named(&'a str),
-    /// Generic font family.
-    Generic(GenericFamily),
+pub struct FontFamily<'a> {
+    pub name: &'a str,
 }
 
 impl<'a> FontFamily<'a> {
@@ -77,10 +73,7 @@ impl<'a> FontFamily<'a> {
 
 impl fmt::Display for FontFamily<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Named(name) => write!(f, "{:?}", name),
-            Self::Generic(family) => write!(f, "{}", family),
-        }
+        write!(f, "{:?}", self.name)
     }
 }
 
@@ -121,20 +114,20 @@ impl<'a> Iterator for ParseList<'a> {
             while pos < self.len {
                 if self.source[pos] == quote {
                     self.pos = pos + 1;
-                    return Some(FontFamily::Named(
-                        core::str::from_utf8(self.source.get(start..pos)?)
+                    return Some(FontFamily {
+                        name: std::str::from_utf8(self.source.get(start..pos)?)
                             .ok()?
                             .trim(),
-                    ));
+                    });
                 }
                 pos += 1;
             }
             self.pos = pos;
-            return Some(FontFamily::Named(
-                core::str::from_utf8(self.source.get(start..pos)?)
+            return Some(FontFamily {
+                name: std::str::from_utf8(self.source.get(start..pos)?)
                     .ok()?
                     .trim(),
-            ));
+            });
         }
         let mut end = start;
         while pos < self.len {
@@ -146,13 +139,10 @@ impl<'a> Iterator for ParseList<'a> {
             end += 1;
         }
         self.pos = pos;
-        let name = core::str::from_utf8(self.source.get(start..end)?)
+        let name = std::str::from_utf8(self.source.get(start..end)?)
             .ok()?
             .trim();
-        Some(match GenericFamily::parse(name) {
-            Some(family) => FontFamily::Generic(family),
-            _ => FontFamily::Named(name),
-        })
+        Some(FontFamily { name })
     }
 }
 

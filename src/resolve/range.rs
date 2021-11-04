@@ -1,7 +1,8 @@
 //! Range based style application.
 
-use super::*;
-use core::ops::{Bound, Range, RangeBounds};
+use std::ops::{Bound, Range, RangeBounds};
+
+use super::{Brush, ResolvedProperty, ResolvedStyle};
 
 /// Builder for constructing an ordered sequence of non-overlapping ranged
 /// styles from a collection of ranged style properties.

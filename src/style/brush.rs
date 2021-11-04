@@ -1,5 +1,7 @@
+use std::fmt::Debug;
+
 /// Trait for types that represent the color of glyphs or decorations.
-pub trait Brush: Clone + PartialEq + Default + core::fmt::Debug {}
+pub trait Brush: Clone + PartialEq + Default + Debug {}
 
 /// Empty brush.
 impl Brush for () {}

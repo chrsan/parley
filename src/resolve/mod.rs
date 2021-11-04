@@ -1,30 +1,32 @@
 //! Resolution of dynamic properties within a context.
 
-pub mod range;
-pub mod tree;
+use std::marker::PhantomData;
+
+use swash::text::Language;
+use swash::Setting;
+
+use crate::font::{FamilyId, FontContext};
+use crate::util::nearly_eq;
 
 use super::style::{
     Brush, FontFamily, FontFeature, FontSettings, FontStack, FontStretch, FontStyle, FontVariation,
     FontWeight, StyleProperty,
 };
-use crate::font::*;
-use crate::util::nearly_eq;
-use fount::FamilyId;
-use swash::text::Language;
-use swash::Setting;
+
+pub mod range;
 
 /// Handle for a managed property.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Resolved<T> {
     index: usize,
-    _phantom: core::marker::PhantomData<T>,
+    _phantom: PhantomData<T>,
 }
 
 impl<T> Default for Resolved<T> {
     fn default() -> Self {
         Self {
             index: !0,
-            _phantom: core::marker::PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -68,7 +70,7 @@ impl<T: Clone + PartialEq> Cache<T> {
                 if existing == items {
                     return Resolved {
                         index: i,
-                        _phantom: core::marker::PhantomData,
+                        _phantom: PhantomData,
                     };
                 }
             }
@@ -80,7 +82,7 @@ impl<T: Clone + PartialEq> Cache<T> {
         self.entries.push((start, end));
         Resolved {
             index,
-            _phantom: core::marker::PhantomData,
+            _phantom: PhantomData,
         }
     }
 
@@ -141,42 +143,20 @@ impl ResolveContext {
         match stack {
             FontStack::Source(source) => {
                 for family in FontFamily::parse_list(source) {
-                    match family {
-                        FontFamily::Named(name) => {
-                            if let Some(family) = fcx.cache.context.family_by_name(name) {
-                                self.tmp_families.push(family.id());
-                            }
-                        }
-                        FontFamily::Generic(family) => {
-                            self.tmp_families
-                                .extend_from_slice(fcx.cache.context.generic_families(family));
-                        }
+                    if let Some(family) = fcx.cache.collection().family_by_name(family.name) {
+                        self.tmp_families.push(family.id);
                     }
                 }
             }
-            FontStack::Single(family) => match family {
-                FontFamily::Named(name) => {
-                    if let Some(family) = fcx.cache.context.family_by_name(name) {
-                        self.tmp_families.push(family.id());
-                    }
+            FontStack::Single(family) => {
+                if let Some(family) = fcx.cache.collection().family_by_name(family.name) {
+                    self.tmp_families.push(family.id);
                 }
-                FontFamily::Generic(family) => {
-                    self.tmp_families
-                        .extend_from_slice(fcx.cache.context.generic_families(family));
-                }
-            },
+            }
             FontStack::List(families) => {
                 for family in families {
-                    match family {
-                        FontFamily::Named(name) => {
-                            if let Some(family) = fcx.cache.context.family_by_name(name) {
-                                self.tmp_families.push(family.id());
-                            }
-                        }
-                        FontFamily::Generic(family) => {
-                            self.tmp_families
-                                .extend_from_slice(fcx.cache.context.generic_families(*family));
-                        }
+                    if let Some(family) = fcx.cache.collection().family_by_name(family.name) {
+                        self.tmp_families.push(family.id);
                     }
                 }
             }

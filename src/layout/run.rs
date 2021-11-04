@@ -1,4 +1,8 @@
-use super::*;
+use std::ops::Range;
+
+use swash::{NormalizedCoord, Synthesis};
+
+use super::{Brush, Cluster, Font, LayoutData, LineRunData, Run, RunData};
 
 impl<'a, B: Brush> Run<'a, B> {
     pub(crate) fn new(

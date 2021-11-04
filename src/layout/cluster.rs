@@ -1,4 +1,8 @@
-use super::*;
+use std::ops::Range;
+
+use swash::text::cluster::{Boundary, ClusterInfo};
+
+use super::{Brush, Cluster, Glyph};
 
 impl<'a, B: Brush> Cluster<'a, B> {
     /// Returns the range of text that defines the cluster.
@@ -67,7 +71,7 @@ impl<'a, B: Brush> Cluster<'a, B> {
 #[derive(Clone)]
 enum GlyphIter<'a> {
     Single(Option<Glyph>),
-    Slice(core::slice::Iter<'a, Glyph>),
+    Slice(std::slice::Iter<'a, Glyph>),
 }
 
 impl<'a> Iterator for GlyphIter<'a> {

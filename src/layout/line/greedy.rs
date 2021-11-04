@@ -1,9 +1,12 @@
 //! Greedy line breaking.
 
-use crate::layout::*;
-use crate::style::Brush;
+use std::mem;
+use std::ops::Range;
 
-use core::ops::Range;
+use swash::text::cluster::Boundary;
+
+use crate::layout::{data::BreakReason, Alignment, LayoutData, LineData, LineRunData, Run};
+use crate::style::Brush;
 
 #[derive(Default)]
 struct LineLayout {
@@ -13,8 +16,8 @@ struct LineLayout {
 
 impl LineLayout {
     fn swap<B: Brush>(&mut self, layout: &mut LayoutData<B>) {
-        core::mem::swap(&mut self.lines, &mut layout.lines);
-        core::mem::swap(&mut self.runs, &mut layout.line_runs);
+        mem::swap(&mut self.lines, &mut layout.lines);
+        mem::swap(&mut self.runs, &mut layout.line_runs);
     }
 }
 

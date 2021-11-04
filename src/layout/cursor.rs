@@ -1,6 +1,8 @@
 //! Hit testing.
 
-use super::*;
+use std::ops::Range;
+
+use super::{Brush, Cluster, Layout, Line, Run};
 
 /// Represents a position within a layout.
 #[derive(Copy, Clone, Default, Debug)]

@@ -1,4 +1,6 @@
-use super::*;
+use std::ops::Range;
+
+use super::{Brush, Glyph, Line, Run, Style};
 
 pub mod greedy;
 

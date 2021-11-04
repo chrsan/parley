@@ -1,18 +1,18 @@
 //! Context for layout.
 
-use super::bidi;
-use super::font::FontContext;
-use super::layout::Layout;
-use super::resolve::range::*;
-use super::resolve::*;
-use super::style::*;
+use std::cell::{RefCell, RefMut};
+use std::ops::{Deref, DerefMut, RangeBounds};
+use std::rc::Rc;
 
 use swash::shape::ShapeContext;
 use swash::text::cluster::CharInfo;
 
-use std::cell::{RefCell, RefMut};
-use std::ops::{Deref, DerefMut, RangeBounds};
-use std::rc::Rc;
+use super::bidi;
+use super::font::FontContext;
+use super::layout::Layout;
+use super::resolve::range::{RangedStyle, RangedStyleBuilder};
+use super::resolve::{ResolveContext, ResolvedDecoration};
+use super::style::{Brush, StyleProperty};
 
 /// Context for building a text layout.
 pub struct LayoutContext<B: Brush = [u8; 4]> {

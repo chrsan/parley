@@ -1,11 +1,13 @@
-use crate::font::Font;
-use crate::layout::{Alignment, Decoration, Glyph, LineMetrics, RunMetrics, Style};
-use crate::style::Brush;
-use crate::util::*;
-use core::ops::Range;
+use std::ops::Range;
+
 use swash::shape::Shaper;
 use swash::text::cluster::{Boundary, ClusterInfo};
 use swash::Synthesis;
+
+use crate::font::Font;
+use crate::layout::{Alignment, Decoration, Glyph, LineMetrics, RunMetrics, Style};
+use crate::style::Brush;
+use crate::util::nearly_zero;
 
 #[derive(Copy, Clone)]
 pub struct ClusterData {
