@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use swash::text::cluster::{Boundary, ClusterInfo};
+use swash::text::cluster::Boundary;
 
 use super::{Cluster, Glyph};
 
@@ -61,10 +61,6 @@ impl<'a> Cluster<'a> {
                 self.run.layout.glyphs[start..start + self.data.glyph_len as usize].iter(),
             )
         }
-    }
-
-    pub(crate) fn info(&self) -> ClusterInfo {
-        self.data.info
     }
 }
 

@@ -4,7 +4,7 @@ use swash::shape::Shaper;
 use swash::text::cluster::{Boundary, ClusterInfo};
 
 use crate::font::FontHandle;
-use crate::layout::{Alignment, Glyph, LineMetrics, RunMetrics, Style};
+use crate::layout::{Glyph, RunMetrics};
 use crate::util::{nearly_zero, Synthesis};
 
 #[derive(Debug, Clone, Copy)]
@@ -22,6 +22,7 @@ pub struct ClusterData {
     pub advance: f32,
 }
 
+#[allow(dead_code)]
 impl ClusterData {
     pub const LIGATURE_START: u16 = 1;
     pub const LIGATURE_COMPONENT: u16 = 2;
@@ -75,99 +76,17 @@ pub struct RunData {
     pub advance: f32,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum BreakReason {
-    None,
-    Regular,
-    Explicit,
-    Emergency,
-}
-
-impl Default for BreakReason {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct LineData {
-    /// Range of the source text.
-    pub text_range: Range<usize>,
-    /// Range of line runs.
-    pub run_range: Range<usize>,
-    /// Metrics for the line.
-    pub metrics: LineMetrics,
-    /// The cause of the line break.
-    pub break_reason: BreakReason,
-    /// Alignment.
-    pub alignment: Alignment,
-    /// Maximum advance for the line.
-    pub max_advance: f32,
-    /// Number of justified clusters on the line.
-    pub num_spaces: usize,
-}
-
-impl LineData {
-    pub fn size(&self) -> f32 {
-        self.metrics.ascent + self.metrics.descent + self.metrics.leading
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct LineRunData {
-    /// Index of the original run.
-    pub run_index: usize,
-    /// Bidi level for the run.
-    pub bidi_level: u8,
-    /// True if the run is composed entirely of whitespace.
-    pub is_whitespace: bool,
-    /// True if the run ends in whitespace.
-    pub has_trailing_whitespace: bool,
-    /// Range of the source text.
-    pub text_range: Range<usize>,
-    /// Range of clusters.
-    pub cluster_range: Range<usize>,
-    /// Advance for the run.
-    pub advance: f32,
-}
-
-impl LineRunData {
-    pub fn compute_line_height(&self, layout: &LayoutData) -> f32 {
-        let mut line_height = 0f32;
-        let glyph_start = layout.runs[self.run_index].glyph_start;
-        for cluster in &layout.clusters[self.cluster_range.clone()] {
-            if cluster.glyph_len != 0xFF && cluster.has_divergent_styles() {
-                let start = glyph_start + cluster.glyph_offset as usize;
-                let end = start + cluster.glyph_len as usize;
-                for glyph in &layout.glyphs[start..end] {
-                    line_height = line_height.max(layout.styles[glyph.style_index()].line_height);
-                }
-            } else {
-                line_height =
-                    line_height.max(layout.styles[cluster.style_index as usize].line_height);
-            }
-        }
-        line_height
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct LayoutData {
     pub scale: f32,
     pub has_bidi: bool,
     pub base_level: u8,
     pub text_len: usize,
-    pub width: f32,
-    pub full_width: f32,
-    pub height: f32,
     pub fonts: Vec<FontHandle>,
     pub coords: Vec<i16>,
-    pub styles: Vec<Style>,
     pub runs: Vec<RunData>,
     pub clusters: Vec<ClusterData>,
     pub glyphs: Vec<Glyph>,
-    pub lines: Vec<LineData>,
-    pub line_runs: Vec<LineRunData>,
 }
 
 impl Default for LayoutData {
@@ -177,17 +96,11 @@ impl Default for LayoutData {
             has_bidi: false,
             base_level: 0,
             text_len: 0,
-            width: 0.,
-            full_width: 0.,
-            height: 0.,
             fonts: Vec::new(),
             coords: Vec::new(),
-            styles: Vec::new(),
             runs: Vec::new(),
             clusters: Vec::new(),
             glyphs: Vec::new(),
-            lines: Vec::new(),
-            line_runs: Vec::new(),
         }
     }
 }
@@ -198,17 +111,11 @@ impl LayoutData {
         self.has_bidi = false;
         self.base_level = 0;
         self.text_len = 0;
-        self.width = 0.;
-        self.full_width = 0.;
-        self.height = 0.;
         self.fonts.clear();
         self.coords.clear();
-        self.styles.clear();
         self.runs.clear();
         self.clusters.clear();
         self.glyphs.clear();
-        self.lines.clear();
-        self.line_runs.clear();
     }
 
     #[allow(unused_assignments)]

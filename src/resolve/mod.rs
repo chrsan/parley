@@ -8,7 +8,7 @@ use swash::Setting;
 use crate::font::{FamilyId, FontContext};
 use crate::util::nearly_eq;
 
-use super::style::{
+use crate::style::{
     FontFamily, FontFeature, FontSettings, FontStack, FontStretch, FontStyle, FontVariation,
     FontWeight, StyleProperty,
 };
@@ -120,7 +120,6 @@ impl ResolveContext {
             StyleProperty::FontVariations(value) => FontVariations(self.resolve_variations(*value)),
             StyleProperty::FontFeatures(value) => FontFeatures(self.resolve_features(*value)),
             StyleProperty::Locale(value) => Locale(value.map(Language::parse).flatten()),
-            StyleProperty::LineHeight(value) => LineHeight(*value),
             StyleProperty::WordSpacing(value) => WordSpacing(*value * scale),
             StyleProperty::LetterSpacing(value) => LetterSpacing(*value * scale),
         }
@@ -246,8 +245,6 @@ pub enum ResolvedProperty {
     FontFeatures(Resolved<Setting<u16>>),
     /// Locale.
     Locale(Option<Language>),
-    /// Line height multiplier.
-    LineHeight(f32),
     /// Extra spacing between words.
     WordSpacing(f32),
     /// Extra spacing between letters.
@@ -273,8 +270,6 @@ pub struct ResolvedStyle {
     pub font_features: Resolved<Setting<u16>>,
     /// Locale.
     pub locale: Option<Language>,
-    /// Line height multiplier.
-    pub line_height: f32,
     /// Extra spacing between words.
     pub word_spacing: f32,
     /// Extra spacing between letters.
@@ -292,7 +287,6 @@ impl Default for ResolvedStyle {
             font_variations: Default::default(),
             font_features: Default::default(),
             locale: None,
-            line_height: 1.,
             word_spacing: 0.,
             letter_spacing: 0.,
         }
@@ -312,7 +306,6 @@ impl ResolvedStyle {
             FontVariations(value) => self.font_variations = value,
             FontFeatures(value) => self.font_features = value,
             Locale(value) => self.locale = value,
-            LineHeight(value) => self.line_height = value,
             WordSpacing(value) => self.word_spacing = value,
             LetterSpacing(value) => self.letter_spacing = value,
         }
@@ -329,7 +322,6 @@ impl ResolvedStyle {
             FontVariations(value) => self.font_variations == *value,
             FontFeatures(value) => self.font_features == *value,
             Locale(value) => self.locale == *value,
-            LineHeight(value) => nearly_eq(self.line_height, *value),
             WordSpacing(value) => nearly_eq(self.word_spacing, *value),
             LetterSpacing(value) => nearly_eq(self.letter_spacing, *value),
         }

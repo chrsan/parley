@@ -3,13 +3,11 @@ use swash::text::cluster::{CharCluster, CharInfo, Token};
 use swash::text::{Language, Script};
 use swash::{Attributes, FontRef, Synthesis};
 
+use crate::font::{FontContext, FontHandle};
+use crate::layout::Layout;
+use crate::resolve::{range::RangedStyle, ResolveContext, Resolved};
+use crate::style::{FontFeature, FontVariation};
 use crate::util::nearly_eq;
-
-use super::font::{FontContext, FontHandle};
-use super::layout::Layout;
-use super::resolve::range::RangedStyle;
-use super::resolve::{ResolveContext, Resolved};
-use super::style::{FontFeature, FontVariation};
 
 #[derive(Debug)]
 struct Item {

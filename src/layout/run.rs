@@ -3,22 +3,11 @@ use std::ops::Range;
 use swash::NormalizedCoord;
 
 use crate::util::Synthesis;
+use crate::FontHandle;
 
-use super::{Cluster, FontHandle, LayoutData, LineRunData, Run, RunData};
+use super::{Cluster, Run};
 
 impl<'a> Run<'a> {
-    pub(crate) fn new(
-        layout: &'a LayoutData,
-        data: &'a RunData,
-        line_data: Option<&'a LineRunData>,
-    ) -> Self {
-        Self {
-            layout,
-            data,
-            line_data,
-        }
-    }
-
     /// Returns the font for the run.
     pub fn font(&self) -> &FontHandle {
         self.layout.fonts.get(self.data.font_index).unwrap()
@@ -50,17 +39,12 @@ impl<'a> Run<'a> {
 
     /// Returns the advance for the run.
     pub fn advance(&self) -> f32 {
-        self.line_data
-            .map(|d| d.advance)
-            .unwrap_or(self.data.advance)
+        self.data.advance
     }
 
     /// Returns the original text range for the run.
     pub fn text_range(&self) -> Range<usize> {
-        self.line_data
-            .map(|d| &d.text_range)
-            .unwrap_or(&self.data.text_range)
-            .clone()
+        self.data.text_range.clone()
     }
 
     /// Returns true if the run has right-to-left directionality.
@@ -70,10 +54,7 @@ impl<'a> Run<'a> {
 
     /// Returns the number of clusters in the run.
     pub fn len(&self) -> usize {
-        self.line_data
-            .map(|d| &d.cluster_range)
-            .unwrap_or(&self.data.cluster_range)
-            .len()
+        self.data.cluster_range.len()
     }
 
     /// Returns true if the run is empty.
@@ -83,10 +64,7 @@ impl<'a> Run<'a> {
 
     /// Returns the cluster at the specified index.
     pub fn get(&self, index: usize) -> Option<Cluster<'a>> {
-        let range = self
-            .line_data
-            .map(|d| &d.cluster_range)
-            .unwrap_or(&self.data.cluster_range);
+        let range = &self.data.cluster_range;
         let index = range.start + index;
         Some(Cluster {
             run: self.clone(),
@@ -96,11 +74,7 @@ impl<'a> Run<'a> {
 
     /// Returns an iterator over the clusters in logical order.
     pub fn clusters(&'a self) -> impl Iterator<Item = Cluster<'a>> + 'a + Clone {
-        let range = self
-            .line_data
-            .map(|d| &d.cluster_range)
-            .unwrap_or(&self.data.cluster_range)
-            .clone();
+        let range = self.data.cluster_range.clone();
         Clusters {
             run: self,
             range,
@@ -110,11 +84,7 @@ impl<'a> Run<'a> {
 
     /// Returns an iterator over the clusters in visual order.
     pub fn visual_clusters(&'a self) -> impl Iterator<Item = Cluster<'a>> + 'a + Clone {
-        let range = self
-            .line_data
-            .map(|d| &d.cluster_range)
-            .unwrap_or(&self.data.cluster_range)
-            .clone();
+        let range = self.data.cluster_range.clone();
         Clusters {
             run: self,
             range,

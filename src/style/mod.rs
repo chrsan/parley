@@ -26,8 +26,6 @@ pub enum StyleProperty<'a> {
     FontFeatures(FontSettings<'a, FontFeature>),
     /// Locale.
     Locale(Option<&'a str>),
-    /// Line height multiplier.
-    LineHeight(f32),
     /// Extra spacing between words.
     WordSpacing(f32),
     /// Extra spacing between letters.
