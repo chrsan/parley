@@ -7,7 +7,7 @@ use BidiClass::*;
 pub type BidiLevel = u8;
 
 /// Resolver for the unicode bidirectional algorithm.
-#[derive(Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct BidiResolver {
     base_level: BidiLevel,
     levels: Vec<BidiLevel>,
@@ -732,7 +732,7 @@ fn find_limit_by_mask(types: &[BidiClass], offset: usize, mask: u32) -> usize {
     len
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Run {
     level: u8,
     ends_with_isolate: bool,

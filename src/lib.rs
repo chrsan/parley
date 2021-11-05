@@ -11,5 +11,5 @@ pub mod layout;
 pub mod style;
 
 pub use context::LayoutContext;
-pub use font::{Font, FontContext};
+pub use font::{FontContext, FontHandle};
 pub use layout::Layout;

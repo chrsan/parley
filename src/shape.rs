@@ -5,12 +5,13 @@ use swash::{Attributes, FontRef, Synthesis};
 
 use crate::util::nearly_eq;
 
-use super::font::{Font, FontContext};
+use super::font::{FontContext, FontHandle};
 use super::layout::Layout;
 use super::resolve::range::RangedStyle;
 use super::resolve::{ResolveContext, Resolved};
-use super::style::{Brush, FontFeature, FontVariation};
+use super::style::{FontFeature, FontVariation};
 
+#[derive(Debug)]
 struct Item {
     style_index: u16,
     size: f32,
@@ -23,15 +24,15 @@ struct Item {
     letter_spacing: f32,
 }
 
-pub fn shape_text<B: Brush>(
+pub fn shape_text(
     rcx: &ResolveContext,
     fcx: &mut FontContext,
-    styles: &[RangedStyle<B>],
+    styles: &[RangedStyle],
     infos: &[(CharInfo, u16)],
     levels: &[u8],
     scx: &mut ShapeContext,
     text: &str,
-    layout: &mut Layout<B>,
+    layout: &mut Layout,
 ) {
     if text.is_empty() || styles.is_empty() {
         return;
@@ -90,7 +91,7 @@ pub fn shape_text<B: Brush>(
                     layout.data.push_run(
                         font.font.clone(),
                         item.size,
-                        font.synthesis,
+                        font.synthesis.into(),
                         shaper,
                         item.level,
                         item.word_spacing,
@@ -143,21 +144,22 @@ fn real_script(script: Script) -> bool {
     script != Script::Common && script != Script::Unknown && script != Script::Inherited
 }
 
-struct FontSelector<'a, B: Brush> {
+#[derive(Debug)]
+struct FontSelector<'a> {
     fcx: &'a mut FontContext,
     rcx: &'a ResolveContext,
-    styles: &'a [RangedStyle<B>],
+    styles: &'a [RangedStyle],
     style_index: u16,
     attrs: Attributes,
     variations: &'a [FontVariation],
     features: &'a [FontFeature],
 }
 
-impl<'a, B: Brush> FontSelector<'a, B> {
+impl<'a> FontSelector<'a> {
     fn new(
         fcx: &'a mut FontContext,
         rcx: &'a ResolveContext,
-        styles: &'a [RangedStyle<B>],
+        styles: &'a [RangedStyle],
         style_index: u16,
     ) -> Self {
         let style = &styles[style_index as usize].style;
@@ -179,7 +181,7 @@ impl<'a, B: Brush> FontSelector<'a, B> {
     }
 }
 
-impl<'a, B: Brush> partition::Selector for FontSelector<'a, B> {
+impl<'a> partition::Selector for FontSelector<'a> {
     type SelectedFont = SelectedFont;
 
     fn select_font(&mut self, cluster: &mut CharCluster) -> Option<Self::SelectedFont> {
@@ -204,7 +206,7 @@ impl<'a, B: Brush> partition::Selector for FontSelector<'a, B> {
 
 #[derive(PartialEq)]
 struct SelectedFont {
-    font: Font,
+    font: FontHandle,
     synthesis: Synthesis,
 }
 

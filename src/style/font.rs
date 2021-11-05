@@ -1,5 +1,3 @@
-use std::fmt;
-
 pub use swash::{ObliqueAngle, Stretch as FontStretch, Style as FontStyle, Weight as FontWeight};
 
 /// Setting for a font variation.
@@ -11,7 +9,7 @@ pub type FontFeature = swash::Setting<u16>;
 /// Prioritized sequence of font families.
 ///
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/font-family>
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FontStack<'a> {
     /// Font family list in CSS format.
     Source(&'a str),
@@ -24,7 +22,7 @@ pub enum FontStack<'a> {
 /// Named or generic font family.
 ///
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/font-family>
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FontFamily<'a> {
     pub name: &'a str,
 }
@@ -71,13 +69,7 @@ impl<'a> FontFamily<'a> {
     }
 }
 
-impl fmt::Display for FontFamily<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.name)
-    }
-}
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct ParseList<'a> {
     source: &'a [u8],
     len: usize,
@@ -148,7 +140,7 @@ impl<'a> Iterator for ParseList<'a> {
 
 /// Font settings that can be supplied as a raw source string or
 /// a parsed slice.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FontSettings<'a, T> {
     /// Setting source in CSS format.
     Source(&'a str),

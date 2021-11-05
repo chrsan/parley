@@ -2,14 +2,12 @@ use std::ops::Range;
 
 use swash::shape::Shaper;
 use swash::text::cluster::{Boundary, ClusterInfo};
-use swash::Synthesis;
 
-use crate::font::Font;
-use crate::layout::{Alignment, Decoration, Glyph, LineMetrics, RunMetrics, Style};
-use crate::style::Brush;
-use crate::util::nearly_zero;
+use crate::font::FontHandle;
+use crate::layout::{Alignment, Glyph, LineMetrics, RunMetrics, Style};
+use crate::util::{nearly_zero, Synthesis};
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ClusterData {
     pub info: ClusterInfo,
     pub flags: u16,
@@ -47,7 +45,7 @@ impl ClusterData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RunData {
     /// Index of the font for the run.
     pub font_index: usize,
@@ -77,7 +75,7 @@ pub struct RunData {
     pub advance: f32,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BreakReason {
     None,
     Regular,
@@ -91,7 +89,7 @@ impl Default for BreakReason {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct LineData {
     /// Range of the source text.
     pub text_range: Range<usize>,
@@ -115,7 +113,7 @@ impl LineData {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct LineRunData {
     /// Index of the original run.
     pub run_index: usize,
@@ -134,7 +132,7 @@ pub struct LineRunData {
 }
 
 impl LineRunData {
-    pub fn compute_line_height<B: Brush>(&self, layout: &LayoutData<B>) -> f32 {
+    pub fn compute_line_height(&self, layout: &LayoutData) -> f32 {
         let mut line_height = 0f32;
         let glyph_start = layout.runs[self.run_index].glyph_start;
         for cluster in &layout.clusters[self.cluster_range.clone()] {
@@ -153,15 +151,8 @@ impl LineRunData {
     }
 }
 
-#[derive(Clone)]
-pub struct StyleData<B: Brush> {
-    pub brush: B,
-    pub underline: Option<Decoration<B>>,
-    pub strikethrough: Option<Decoration<B>>,
-}
-
-#[derive(Clone)]
-pub struct LayoutData<B: Brush> {
+#[derive(Debug, Clone)]
+pub struct LayoutData {
     pub scale: f32,
     pub has_bidi: bool,
     pub base_level: u8,
@@ -169,9 +160,9 @@ pub struct LayoutData<B: Brush> {
     pub width: f32,
     pub full_width: f32,
     pub height: f32,
-    pub fonts: Vec<Font>,
+    pub fonts: Vec<FontHandle>,
     pub coords: Vec<i16>,
-    pub styles: Vec<Style<B>>,
+    pub styles: Vec<Style>,
     pub runs: Vec<RunData>,
     pub clusters: Vec<ClusterData>,
     pub glyphs: Vec<Glyph>,
@@ -179,7 +170,7 @@ pub struct LayoutData<B: Brush> {
     pub line_runs: Vec<LineRunData>,
 }
 
-impl<B: Brush> Default for LayoutData<B> {
+impl Default for LayoutData {
     fn default() -> Self {
         Self {
             scale: 1.,
@@ -201,7 +192,7 @@ impl<B: Brush> Default for LayoutData<B> {
     }
 }
 
-impl<B: Brush> LayoutData<B> {
+impl LayoutData {
     pub fn clear(&mut self) {
         self.scale = 1.;
         self.has_bidi = false;
@@ -223,7 +214,7 @@ impl<B: Brush> LayoutData<B> {
     #[allow(unused_assignments)]
     pub fn push_run(
         &mut self,
-        font: Font,
+        font: FontHandle,
         font_size: f32,
         synthesis: Synthesis,
         shaper: Shaper,
@@ -259,10 +250,6 @@ impl<B: Brush> LayoutData<B> {
                 ascent: metrics.ascent,
                 descent: metrics.descent,
                 leading: metrics.leading,
-                underline_offset: metrics.underline_offset,
-                underline_size: metrics.stroke_size,
-                strikethrough_offset: metrics.strikeout_offset,
-                strikethrough_size: metrics.stroke_size,
             },
             word_spacing,
             letter_spacing,

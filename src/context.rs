@@ -1,6 +1,7 @@
 //! Context for layout.
 
 use std::cell::{RefCell, RefMut};
+use std::fmt;
 use std::ops::{Deref, DerefMut, RangeBounds};
 use std::rc::Rc;
 
@@ -9,22 +10,22 @@ use swash::text::cluster::CharInfo;
 
 use super::bidi;
 use super::font::FontContext;
-use super::layout::Layout;
+use super::layout::{Layout, Style};
 use super::resolve::range::{RangedStyle, RangedStyleBuilder};
-use super::resolve::{ResolveContext, ResolvedDecoration};
-use super::style::{Brush, StyleProperty};
+use super::resolve::ResolveContext;
+use super::style::StyleProperty;
 
 /// Context for building a text layout.
-pub struct LayoutContext<B: Brush = [u8; 4]> {
+pub struct LayoutContext {
     bidi: bidi::BidiResolver,
     rcx: ResolveContext,
-    styles: Vec<RangedStyle<B>>,
-    rsb: RangedStyleBuilder<B>,
+    styles: Vec<RangedStyle>,
+    rsb: RangedStyleBuilder,
     info: Vec<(CharInfo, u16)>,
     scx: ShapeContext,
 }
 
-impl<B: Brush> LayoutContext<B> {
+impl LayoutContext {
     pub fn new() -> Self {
         Self {
             bidi: bidi::BidiResolver::new(),
@@ -41,7 +42,7 @@ impl<B: Brush> LayoutContext<B> {
         fcx: &'a mut FontContext,
         text: &'a str,
         scale: f32,
-    ) -> RangedBuilder<B, &'a str> {
+    ) -> RangedBuilder<&'a str> {
         self.begin(text);
         fcx.cache.reset();
         RangedBuilder {
@@ -73,26 +74,37 @@ impl<B: Brush> LayoutContext<B> {
     }
 }
 
-impl<B: Brush> Default for LayoutContext<B> {
+impl Default for LayoutContext {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<B: Brush> Clone for LayoutContext<B> {
+impl Clone for LayoutContext {
     fn clone(&self) -> Self {
         // None of the internal state is visible so just return a new instance.
         Self::new()
     }
 }
 
-#[doc(hidden)]
-#[derive(Clone)]
-pub struct RcLayoutContext<B: Brush> {
-    lcx: Rc<RefCell<LayoutContext<B>>>,
+impl fmt::Debug for LayoutContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LayoutContext")
+            .field("bidi", &self.bidi)
+            .field("rcx", &self.rcx)
+            .field("styles", &self.styles)
+            .field("rsb", &self.rsb)
+            .finish()
+    }
 }
 
-impl<B: Brush> RcLayoutContext<B> {
+#[doc(hidden)]
+#[derive(Clone)]
+pub struct RcLayoutContext {
+    lcx: Rc<RefCell<LayoutContext>>,
+}
+
+impl RcLayoutContext {
     pub fn new() -> Self {
         Self {
             lcx: Rc::new(RefCell::new(LayoutContext::new())),
@@ -104,7 +116,7 @@ impl<B: Brush> RcLayoutContext<B> {
         fcx: Rc<RefCell<FontContext>>,
         text: T,
         scale: f32,
-    ) -> RangedBuilder<'static, B, T> {
+    ) -> RangedBuilder<'static, T> {
         self.lcx.borrow_mut().begin(text.as_str());
         RangedBuilder {
             text,
@@ -116,29 +128,29 @@ impl<B: Brush> RcLayoutContext<B> {
 }
 
 /// Builder for constructing a text layout with ranged attributes.
-pub struct RangedBuilder<'a, B: Brush, T: TextSource> {
+pub struct RangedBuilder<'a, T: TextSource> {
     text: T,
     scale: f32,
-    lcx: MaybeShared<'a, LayoutContext<B>>,
+    lcx: MaybeShared<'a, LayoutContext>,
     fcx: MaybeShared<'a, FontContext>,
 }
 
-impl<'a, B: Brush, T: TextSource> RangedBuilder<'a, B, T> {
-    pub fn push_default(&mut self, property: &StyleProperty<B>) {
+impl<'a, T: TextSource> RangedBuilder<'a, T> {
+    pub fn push_default(&mut self, property: &StyleProperty) {
         let mut lcx = self.lcx.borrow_mut();
         let mut fcx = self.fcx.borrow_mut();
         let resolved = lcx.rcx.resolve(&mut fcx, &property, self.scale);
         lcx.rsb.push_default(resolved);
     }
 
-    pub fn push(&mut self, property: &StyleProperty<B>, range: impl RangeBounds<usize>) {
+    pub fn push(&mut self, property: &StyleProperty, range: impl RangeBounds<usize>) {
         let mut lcx = self.lcx.borrow_mut();
         let mut fcx = self.fcx.borrow_mut();
         let resolved = lcx.rcx.resolve(&mut fcx, &property, self.scale);
         lcx.rsb.push(resolved, range);
     }
 
-    pub fn build_into(&mut self, layout: &mut Layout<B>) {
+    pub fn build_into(&mut self, layout: &mut Layout) {
         layout.data.clear();
         layout.data.scale = self.scale;
         let mut lcx = self.lcx.borrow_mut();
@@ -161,27 +173,9 @@ impl<'a, B: Brush, T: TextSource> RangedBuilder<'a, B, T> {
                 char_index += 1;
             }
         }
-        use super::layout::{Decoration, Style};
-        fn conv_deco<B: Brush>(
-            deco: &ResolvedDecoration<B>,
-            default_brush: &B,
-        ) -> Option<Decoration<B>> {
-            if deco.enabled {
-                Some(Decoration {
-                    brush: deco.brush.clone().unwrap_or_else(|| default_brush.clone()),
-                    offset: deco.offset,
-                    size: deco.size,
-                })
-            } else {
-                None
-            }
-        }
         layout.data.styles.extend(lcx.styles.iter().map(|s| {
             let s = &s.style;
             Style {
-                brush: s.brush.clone(),
-                underline: conv_deco(&s.underline, &s.brush),
-                strikethrough: conv_deco(&s.strikethrough, &s.brush),
                 line_height: s.line_height,
             }
         }));
@@ -205,7 +199,7 @@ impl<'a, B: Brush, T: TextSource> RangedBuilder<'a, B, T> {
         }
     }
 
-    pub fn build(&mut self) -> Layout<B> {
+    pub fn build(&mut self) -> Layout {
         let mut layout = Layout::default();
         self.build_into(&mut layout);
         layout

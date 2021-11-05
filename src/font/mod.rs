@@ -17,13 +17,13 @@ pub use self::{data::DataId, family::FamilyId, font::FontId};
 
 /// Shared handle to a font.
 #[derive(Debug, Clone)]
-pub struct Font {
+pub struct FontHandle {
     data: data::FontData,
     offset: u32,
     key: CacheKey,
 }
 
-impl Font {
+impl FontHandle {
     /// Returns a reference to the font.
     pub fn as_ref(&self) -> FontRef {
         FontRef {
@@ -34,7 +34,7 @@ impl Font {
     }
 }
 
-impl PartialEq for Font {
+impl PartialEq for FontHandle {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
     }
@@ -52,19 +52,19 @@ impl FontContext {
         self.cache.collection.family_by_name(name).is_some()
     }
 
-    pub fn fonts(&mut self, family: FontFamily<'_>) -> Vec<(Font, Attributes)> {
+    pub fn fonts(&mut self, family: FontFamily<'_>) -> Vec<(FontHandle, Attributes)> {
         let collection = &self.cache.collection;
         if let Some(family) = collection.family_by_name(family.name) {
             family
-                .fonts
+                .font_attrs
                 .iter()
-                .flat_map(|e| {
-                    let font = collection.font(e.font_id)?;
+                .flat_map(|a| {
+                    let font = collection.font(a.font_id)?;
                     let data = collection.data(font.data_id)?;
                     let attributes = font.attributes;
                     let font_ref = FontRef::from_index(&data, font.index as _)?;
                     let offset = font_ref.offset;
-                    let font = Font {
+                    let font = FontHandle {
                         data,
                         offset,
                         key: font.cache_key,
@@ -117,7 +117,7 @@ impl FontCache {
         }
     }
 
-    pub fn map_cluster(&mut self, cluster: &mut CharCluster) -> Option<(Font, Synthesis)> {
+    pub fn map_cluster(&mut self, cluster: &mut CharCluster) -> Option<(FontHandle, Synthesis)> {
         let mut best = None;
         map_cluster(
             &self.collection,
@@ -133,7 +133,7 @@ fn map_cluster(
     collection: &FontCollection,
     fonts: &mut [CachedFont],
     cluster: &mut CharCluster,
-    best: &mut Option<(Font, Attributes)>,
+    best: &mut Option<(FontHandle, Attributes)>,
 ) -> bool {
     for font in fonts {
         if font.map_cluster(collection, cluster, best) {
@@ -146,7 +146,7 @@ fn map_cluster(
 #[derive(Debug, Clone)]
 struct CachedFont {
     id: FontId,
-    font: Option<(Font, CharmapProxy)>,
+    font: Option<(FontHandle, CharmapProxy)>,
     attrs: Attributes,
     error: bool,
 }
@@ -161,13 +161,13 @@ impl CachedFont {
         }
     }
 
-    fn get_font(&self, collection: &FontCollection) -> Option<(Font, Attributes)> {
+    fn get_font(&self, collection: &FontCollection) -> Option<(FontHandle, Attributes)> {
         let font = collection.font(self.id)?;
         let data = collection.data(font.data_id)?;
         let font_ref = FontRef::from_index(&data, font.index as usize)?;
         let offset = font_ref.offset;
         Some((
-            Font {
+            FontHandle {
                 data,
                 offset,
                 key: font.cache_key,
@@ -180,7 +180,7 @@ impl CachedFont {
         &mut self,
         collection: &FontCollection,
         cluster: &mut CharCluster,
-        best: &mut Option<(Font, Attributes)>,
+        best: &mut Option<(FontHandle, Attributes)>,
     ) -> bool {
         if self.error {
             return false;

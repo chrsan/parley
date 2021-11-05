@@ -2,9 +2,9 @@ use std::ops::Range;
 
 use swash::text::cluster::{Boundary, ClusterInfo};
 
-use super::{Brush, Cluster, Glyph};
+use super::{Cluster, Glyph};
 
-impl<'a, B: Brush> Cluster<'a, B> {
+impl<'a> Cluster<'a> {
     /// Returns the range of text that defines the cluster.
     pub fn text_range(&self) -> Range<usize> {
         self.data.text_range(self.run.data)

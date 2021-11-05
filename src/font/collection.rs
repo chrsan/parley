@@ -5,7 +5,7 @@ use swash::{FontDataRef, Stretch};
 
 use super::{
     data::FontData,
-    family::{FontElement, FontFamily},
+    family::{FontAttributes, FontFamily},
     font::Font,
     DataId, FamilyId, FontId,
 };
@@ -41,12 +41,12 @@ impl FontCollection {
 
     pub fn add_fonts(&mut self, name: &str, data: Vec<u8>) -> Option<usize> {
         let data = FontData(Arc::new(data));
-        let font_data = if let Some(font_data) = FontDataRef::new(&data) {
-            font_data
+        let font_data_ref = if let Some(r) = FontDataRef::new(&data) {
+            r
         } else {
             return None;
         };
-        let num_fonts = font_data.len();
+        let num_fonts = font_data_ref.len();
         if num_fonts == 0 {
             return None;
         }
@@ -57,7 +57,7 @@ impl FontCollection {
         let mut count = 0;
         for index in 0..num_fonts {
             assert!(index <= u16::MAX as _);
-            let font = if let Some(font) = font_data.get(index) {
+            let font = if let Some(font) = font_data_ref.get(index) {
                 font
             } else {
                 continue;
@@ -75,7 +75,7 @@ impl FontCollection {
                     id: family_id,
                     name: name.into(),
                     has_stretch: false,
-                    fonts: Vec::new(),
+                    font_attrs: Vec::new(),
                 };
                 self.families.push(Arc::new(family));
                 self.family_map.insert(name.into(), family_id);
@@ -85,9 +85,9 @@ impl FontCollection {
             let attributes = font.attributes();
             let (stretch, weight, style) = attributes.parts();
             if family
-                .fonts
+                .font_attrs
                 .iter()
-                .any(|e| e.stretch == stretch && e.weight == weight && e.style == style)
+                .any(|a| a.stretch == stretch && a.weight == weight && a.style == style)
             {
                 continue;
             }
@@ -98,11 +98,14 @@ impl FontCollection {
             if stretch != Stretch::NORMAL {
                 family.has_stretch = true;
             }
-            match family.fonts.binary_search_by(|e| e.weight.cmp(&weight)) {
+            match family
+                .font_attrs
+                .binary_search_by(|a| a.weight.cmp(&weight))
+            {
                 Ok(index) | Err(index) => {
-                    family.fonts.insert(
+                    family.font_attrs.insert(
                         index,
-                        FontElement {
+                        FontAttributes {
                             font_id,
                             stretch,
                             weight,

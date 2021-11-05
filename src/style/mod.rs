@@ -1,17 +1,15 @@
 //! Rich styling support.
 
-mod brush;
 mod font;
 
-pub use brush::Brush;
 pub use font::{
     FontFamily, FontFeature, FontSettings, FontStack, FontStretch, FontStyle, FontVariation,
     FontWeight, ObliqueAngle,
 };
 
 /// Properties that define a style.
-#[derive(Clone, PartialEq, Debug)]
-pub enum StyleProperty<'a, B: Brush> {
+#[derive(Debug, Clone, PartialEq)]
+pub enum StyleProperty<'a> {
     /// Font family stack.
     FontStack(FontStack<'a>),
     /// Font size.
@@ -28,24 +26,6 @@ pub enum StyleProperty<'a, B: Brush> {
     FontFeatures(FontSettings<'a, FontFeature>),
     /// Locale.
     Locale(Option<&'a str>),
-    /// Brush for rendering text.
-    Brush(B),
-    /// Underline decoration.
-    Underline(bool),
-    /// Offset of the underline decoration.
-    UnderlineOffset(Option<f32>),
-    /// Size of the underline decoration.
-    UnderlineSize(Option<f32>),
-    /// Brush for rendering the underline decoration.
-    UnderlineBrush(Option<B>),
-    /// Strikethrough decoration.
-    Strikethrough(bool),
-    /// Offset of the strikethrough decoration.
-    StrikethroughOffset(Option<f32>),
-    /// Size of the strikethrough decoration.
-    StrikethroughSize(Option<f32>),
-    /// Brush for rendering the strikethrough decoration.
-    StrikethroughBrush(Option<B>),
     /// Line height multiplier.
     LineHeight(f32),
     /// Extra spacing between words.

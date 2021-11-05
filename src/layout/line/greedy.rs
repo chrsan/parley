@@ -6,7 +6,6 @@ use std::ops::Range;
 use swash::text::cluster::Boundary;
 
 use crate::layout::{data::BreakReason, Alignment, LayoutData, LineData, LineRunData, Run};
-use crate::style::Brush;
 
 #[derive(Default)]
 struct LineLayout {
@@ -15,23 +14,23 @@ struct LineLayout {
 }
 
 impl LineLayout {
-    fn swap<B: Brush>(&mut self, layout: &mut LayoutData<B>) {
+    fn swap(&mut self, layout: &mut LayoutData) {
         mem::swap(&mut self.lines, &mut layout.lines);
         mem::swap(&mut self.runs, &mut layout.line_runs);
     }
 }
 
 /// Line breaking support for a paragraph.
-pub struct BreakLines<'a, B: Brush> {
-    layout: &'a mut LayoutData<B>,
+pub struct BreakLines<'a> {
+    layout: &'a mut LayoutData,
     lines: LineLayout,
     state: BreakerState,
     prev_state: Option<BreakerState>,
     done: bool,
 }
 
-impl<'a, B: Brush> BreakLines<'a, B> {
-    pub(crate) fn new(layout: &'a mut LayoutData<B>) -> Self {
+impl<'a> BreakLines<'a> {
+    pub(crate) fn new(layout: &'a mut LayoutData) -> Self {
         unjustify(layout);
         layout.width = 0.;
         layout.height = 0.;
@@ -409,7 +408,7 @@ impl<'a, B: Brush> BreakLines<'a, B> {
     }
 }
 
-impl<'a, B: Brush> Drop for BreakLines<'a, B> {
+impl<'a> Drop for BreakLines<'a> {
     fn drop(&mut self) {
         let mut width = 0f32;
         let mut full_width = 0f32;
@@ -427,7 +426,7 @@ impl<'a, B: Brush> Drop for BreakLines<'a, B> {
 }
 
 /// Removes previous justification applied to clusters.
-fn unjustify<B: Brush>(layout: &mut LayoutData<B>) {
+fn unjustify(layout: &mut LayoutData) {
     for line in &layout.lines {
         if line.alignment == Alignment::Justified
             && line.max_advance.is_finite()
@@ -494,8 +493,8 @@ struct BreakerState {
     prev_boundary: Option<PrevBoundaryState>,
 }
 
-fn commit_line<B: Brush>(
-    layout: &LayoutData<B>,
+fn commit_line(
+    layout: &LayoutData,
     lines: &mut LineLayout,
     state: &mut LineState,
     max_advance: f32,

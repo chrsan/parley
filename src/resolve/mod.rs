@@ -9,14 +9,14 @@ use crate::font::{FamilyId, FontContext};
 use crate::util::nearly_eq;
 
 use super::style::{
-    Brush, FontFamily, FontFeature, FontSettings, FontStack, FontStretch, FontStyle, FontVariation,
+    FontFamily, FontFeature, FontSettings, FontStack, FontStretch, FontStyle, FontVariation,
     FontWeight, StyleProperty,
 };
 
 pub mod range;
 
 /// Handle for a managed property.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Resolved<T> {
     index: usize,
     _phantom: PhantomData<T>,
@@ -37,7 +37,7 @@ impl<T> Resolved<T> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Cache<T> {
     /// Items in the cache. May contain sequences.
     items: Vec<T>,
@@ -93,7 +93,7 @@ impl<T: Clone + PartialEq> Cache<T> {
 }
 
 /// Context for managing dynamic properties during layout.
-#[derive(Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
     families: Cache<FamilyId>,
     variations: Cache<Setting<f32>>,
@@ -104,12 +104,12 @@ pub struct ResolveContext {
 }
 
 impl ResolveContext {
-    pub fn resolve<B: Brush>(
+    pub fn resolve(
         &mut self,
         fcx: &mut FontContext,
-        property: &StyleProperty<B>,
+        property: &StyleProperty,
         scale: f32,
-    ) -> ResolvedProperty<B> {
+    ) -> ResolvedProperty {
         use ResolvedProperty::*;
         match property {
             StyleProperty::FontStack(value) => FontStack(self.resolve_stack(fcx, *value)),
@@ -120,17 +120,6 @@ impl ResolveContext {
             StyleProperty::FontVariations(value) => FontVariations(self.resolve_variations(*value)),
             StyleProperty::FontFeatures(value) => FontFeatures(self.resolve_features(*value)),
             StyleProperty::Locale(value) => Locale(value.map(Language::parse).flatten()),
-            StyleProperty::Brush(value) => Brush(value.clone()),
-            StyleProperty::Underline(value) => Underline(*value),
-            StyleProperty::UnderlineOffset(value) => UnderlineOffset(value.map(|x| x * scale)),
-            StyleProperty::UnderlineSize(value) => UnderlineSize(value.map(|x| x * scale)),
-            StyleProperty::UnderlineBrush(value) => UnderlineBrush(value.clone()),
-            StyleProperty::Strikethrough(value) => Strikethrough(*value),
-            StyleProperty::StrikethroughOffset(value) => {
-                StrikethroughOffset(value.map(|x| x * scale))
-            }
-            StyleProperty::StrikethroughSize(value) => StrikethroughSize(value.map(|x| x * scale)),
-            StyleProperty::StrikethroughBrush(value) => StrikethroughBrush(value.clone()),
             StyleProperty::LineHeight(value) => LineHeight(*value),
             StyleProperty::WordSpacing(value) => WordSpacing(*value * scale),
             StyleProperty::LetterSpacing(value) => LetterSpacing(*value * scale),
@@ -239,8 +228,8 @@ impl ResolveContext {
 }
 
 /// Style property with resolved resources.
-#[derive(Clone, PartialEq)]
-pub enum ResolvedProperty<B: Brush> {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ResolvedProperty {
     /// Font stack.
     FontStack(Resolved<FamilyId>),
     /// Font size.
@@ -257,24 +246,6 @@ pub enum ResolvedProperty<B: Brush> {
     FontFeatures(Resolved<Setting<u16>>),
     /// Locale.
     Locale(Option<Language>),
-    /// Brush for rendering text.
-    Brush(B),
-    /// Underline decoration.
-    Underline(bool),
-    /// Offset of the underline decoration.
-    UnderlineOffset(Option<f32>),
-    /// Size of the underline decoration.
-    UnderlineSize(Option<f32>),
-    /// Brush for rendering the underline decoration.
-    UnderlineBrush(Option<B>),
-    /// Strikethrough decoration.
-    Strikethrough(bool),
-    /// Offset of the strikethrough decoration.
-    StrikethroughOffset(Option<f32>),
-    /// Size of the strikethrough decoration.
-    StrikethroughSize(Option<f32>),
-    /// Brush for rendering the strikethrough decoration.
-    StrikethroughBrush(Option<B>),
     /// Line height multiplier.
     LineHeight(f32),
     /// Extra spacing between words.
@@ -284,8 +255,8 @@ pub enum ResolvedProperty<B: Brush> {
 }
 
 /// Flattened group of style properties.
-#[derive(Clone, PartialEq, Debug)]
-pub struct ResolvedStyle<B: Brush> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedStyle {
     /// Font stack.
     pub font_stack: Resolved<FamilyId>,
     /// Font size.
@@ -302,12 +273,6 @@ pub struct ResolvedStyle<B: Brush> {
     pub font_features: Resolved<Setting<u16>>,
     /// Locale.
     pub locale: Option<Language>,
-    /// Brush for rendering text.
-    pub brush: B,
-    /// Underline decoration.
-    pub underline: ResolvedDecoration<B>,
-    /// Strikethrough decoration.
-    pub strikethrough: ResolvedDecoration<B>,
     /// Line height multiplier.
     pub line_height: f32,
     /// Extra spacing between words.
@@ -316,7 +281,7 @@ pub struct ResolvedStyle<B: Brush> {
     pub letter_spacing: f32,
 }
 
-impl<B: Brush> Default for ResolvedStyle<B> {
+impl Default for ResolvedStyle {
     fn default() -> Self {
         Self {
             font_stack: Resolved::default(),
@@ -327,9 +292,6 @@ impl<B: Brush> Default for ResolvedStyle<B> {
             font_variations: Default::default(),
             font_features: Default::default(),
             locale: None,
-            brush: Default::default(),
-            underline: Default::default(),
-            strikethrough: Default::default(),
             line_height: 1.,
             word_spacing: 0.,
             letter_spacing: 0.,
@@ -337,9 +299,9 @@ impl<B: Brush> Default for ResolvedStyle<B> {
     }
 }
 
-impl<B: Brush> ResolvedStyle<B> {
+impl ResolvedStyle {
     /// Applies the specified property to this style.
-    pub fn apply(&mut self, property: ResolvedProperty<B>) {
+    pub fn apply(&mut self, property: ResolvedProperty) {
         use ResolvedProperty::*;
         match property {
             FontStack(value) => self.font_stack = value,
@@ -350,22 +312,13 @@ impl<B: Brush> ResolvedStyle<B> {
             FontVariations(value) => self.font_variations = value,
             FontFeatures(value) => self.font_features = value,
             Locale(value) => self.locale = value,
-            Brush(value) => self.brush = value,
-            Underline(value) => self.underline.enabled = value,
-            UnderlineOffset(value) => self.underline.offset = value,
-            UnderlineSize(value) => self.underline.size = value,
-            UnderlineBrush(value) => self.underline.brush = value,
-            Strikethrough(value) => self.strikethrough.enabled = value,
-            StrikethroughOffset(value) => self.strikethrough.offset = value,
-            StrikethroughSize(value) => self.strikethrough.size = value,
-            StrikethroughBrush(value) => self.strikethrough.brush = value,
             LineHeight(value) => self.line_height = value,
             WordSpacing(value) => self.word_spacing = value,
             LetterSpacing(value) => self.letter_spacing = value,
         }
     }
 
-    pub fn check(&self, property: &ResolvedProperty<B>) -> bool {
+    pub fn check(&self, property: &ResolvedProperty) -> bool {
         use ResolvedProperty::*;
         match property {
             FontStack(value) => self.font_stack == *value,
@@ -376,31 +329,9 @@ impl<B: Brush> ResolvedStyle<B> {
             FontVariations(value) => self.font_variations == *value,
             FontFeatures(value) => self.font_features == *value,
             Locale(value) => self.locale == *value,
-            Brush(value) => self.brush == *value,
-            Underline(value) => self.underline.enabled == *value,
-            UnderlineOffset(value) => self.underline.offset == *value,
-            UnderlineSize(value) => self.underline.size == *value,
-            UnderlineBrush(value) => self.underline.brush == *value,
-            Strikethrough(value) => self.strikethrough.enabled == *value,
-            StrikethroughOffset(value) => self.strikethrough.offset == *value,
-            StrikethroughSize(value) => self.strikethrough.size == *value,
-            StrikethroughBrush(value) => self.strikethrough.brush == *value,
             LineHeight(value) => nearly_eq(self.line_height, *value),
             WordSpacing(value) => nearly_eq(self.word_spacing, *value),
             LetterSpacing(value) => nearly_eq(self.letter_spacing, *value),
         }
     }
-}
-
-/// Underline or strikethrough decoration.
-#[derive(Clone, PartialEq, Default, Debug)]
-pub struct ResolvedDecoration<B: Brush> {
-    /// True if the decoration is enabled.
-    pub enabled: bool,
-    /// Offset of the decoration from the baseline.
-    pub offset: Option<f32>,
-    /// Thickness of the decoration stroke.
-    pub size: Option<f32>,
-    /// Brush for the decoration.
-    pub brush: Option<B>,
 }
